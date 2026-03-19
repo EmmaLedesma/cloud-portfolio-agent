@@ -16,3 +16,8 @@ output "docs_bucket_name" {
   description = "Bucket para documentos del RAG"
   value       = module.storage.docs_bucket_name
 }
+
+output "pubsub_topic_name" {
+  description = "Topic de Pub/Sub para nuevos documentos"
+  value       = module.pubsub.topic_name
+}

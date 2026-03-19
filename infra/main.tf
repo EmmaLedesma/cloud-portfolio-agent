@@ -60,3 +60,12 @@ module "storage" {
 
   depends_on = [google_project_service.apis]
 }
+
+module "pubsub" {
+  source = "./modules/pubsub"
+
+  project_id  = var.project_id
+  environment = var.environment
+
+  depends_on = [google_project_service.apis]
+}
