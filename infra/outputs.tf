@@ -21,3 +21,8 @@ output "pubsub_topic_name" {
   description = "Topic de Pub/Sub para nuevos documentos"
   value       = module.pubsub.topic_name
 }
+
+output "bigquery_dataset_id" {
+  description = "Dataset de BigQuery para analytics"
+  value       = module.bigquery.dataset_id
+}

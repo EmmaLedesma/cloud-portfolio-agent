@@ -69,3 +69,12 @@ module "pubsub" {
 
   depends_on = [google_project_service.apis]
 }
+
+module "bigquery" {
+  source = "./modules/bigquery"
+
+  project_id = var.project_id
+  region     = var.region
+
+  depends_on = [google_project_service.apis]
+}
