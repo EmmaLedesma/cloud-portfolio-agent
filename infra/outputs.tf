@@ -26,3 +26,13 @@ output "bigquery_dataset_id" {
   description = "Dataset de BigQuery para analytics"
   value       = module.bigquery.dataset_id
 }
+
+output "vertex_ai_data_store_id" {
+  description = "ID del data store de Vertex AI Search"
+  value       = module.vertex_ai.data_store_id
+}
+
+output "vertex_ai_search_engine_id" {
+  description = "ID del search engine de Vertex AI Search"
+  value       = module.vertex_ai.search_engine_id
+}

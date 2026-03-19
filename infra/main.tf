@@ -9,8 +9,10 @@ terraform {
 }
 
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  project               = var.project_id
+  region                = var.region
+  billing_project       = var.project_id
+  user_project_override = true
 }
 
 locals {
@@ -72,6 +74,15 @@ module "pubsub" {
 
 module "bigquery" {
   source = "./modules/bigquery"
+
+  project_id = var.project_id
+  region     = var.region
+
+  depends_on = [google_project_service.apis]
+}
+
+module "vertex_ai" {
+  source = "./modules/vertex_ai"
 
   project_id = var.project_id
   region     = var.region
