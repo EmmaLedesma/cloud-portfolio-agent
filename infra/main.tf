@@ -89,3 +89,17 @@ module "vertex_ai" {
 
   depends_on = [google_project_service.apis]
 }
+
+module "cloud_run" {
+  source = "./modules/cloud_run"
+
+  project_id            = var.project_id
+  region                = var.region
+  service_account_email = module.iam.cloud_run_service_account
+  data_store_id         = module.vertex_ai.data_store_id
+  search_engine_id      = module.vertex_ai.search_engine_id
+  bigquery_dataset_id   = module.bigquery.dataset_id
+  bigquery_table_id     = module.bigquery.table_id
+
+  depends_on = [google_project_service.apis]
+}

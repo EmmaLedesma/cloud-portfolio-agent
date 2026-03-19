@@ -11,6 +11,10 @@ resource "google_discovery_engine_data_store" "portfolio" {
   content_config              = "CONTENT_REQUIRED"
   solution_types              = ["SOLUTION_TYPE_SEARCH"]
   create_advanced_site_search = false
+
+  lifecycle {
+    ignore_changes = [document_processing_config]
+  }
 }
 
 # ── Search Engine ───────────────────────────────────────────────

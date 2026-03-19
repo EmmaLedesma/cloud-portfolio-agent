@@ -36,3 +36,8 @@ output "vertex_ai_search_engine_id" {
   description = "ID del search engine de Vertex AI Search"
   value       = module.vertex_ai.search_engine_id
 }
+
+output "cloud_run_url" {
+  description = "URL pública del agente"
+  value       = module.cloud_run.service_url
+}
