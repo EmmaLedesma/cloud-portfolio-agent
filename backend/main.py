@@ -29,7 +29,7 @@ BIGQUERY_DATASET = os.environ["BIGQUERY_DATASET"]
 BIGQUERY_TABLE   = os.environ["BIGQUERY_TABLE"]
 
 vertexai.init(project=PROJECT_ID, location=REGION)
-model = GenerativeModel("gemini-1.5-flash")
+model = GenerativeModel("gemini-1.0-pro")
 bq_client = bigquery.Client(project=PROJECT_ID)
 
 class ChatRequest(BaseModel):
