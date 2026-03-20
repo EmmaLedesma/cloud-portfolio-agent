@@ -5,10 +5,10 @@ variable "region" {}
 resource "google_discovery_engine_data_store" "portfolio" {
   project                     = var.project_id
   location                    = "global"
-  data_store_id               = "portfolio-docs"
+  data_store_id               = "portfolio-docs-v2"
   display_name                = "Portfolio Documents"
   industry_vertical           = "GENERIC"
-  content_config              = "CONTENT_REQUIRED"
+  content_config              = "NO_CONTENT"
   solution_types              = ["SOLUTION_TYPE_SEARCH"]
   create_advanced_site_search = false
 
@@ -21,7 +21,7 @@ resource "google_discovery_engine_data_store" "portfolio" {
 resource "google_discovery_engine_search_engine" "portfolio" {
   project       = var.project_id
   location      = "global"
-  engine_id     = "portfolio-search"
+  engine_id     = "portfolio-search-v2"
   display_name  = "Portfolio Search Engine"
   collection_id = "default_collection"
   data_store_ids = [
