@@ -103,3 +103,25 @@ module "cloud_run" {
 
   depends_on = [google_project_service.apis]
 }
+
+module "cloud_functions" {
+  source = "./modules/cloud_functions"
+
+  project_id                = var.project_id
+  region                    = var.region
+  docs_bucket_name          = module.storage.docs_bucket_name
+  pubsub_topic_id           = module.pubsub.topic_id
+  ingestion_service_account = module.iam.ingestion_service_account
+
+  depends_on = [google_project_service.apis]
+}
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  project_id   = var.project_id
+  region       = var.region
+  service_name = "portfolio-agent"
+
+  depends_on = [module.cloud_run]
+}

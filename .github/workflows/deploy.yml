@@ -1,0 +1,68 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    if: contains(github.event.commits[0].modified, 'backend/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CICD_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Build and push image
+        run: |
+          docker build -t us-central1-docker.pkg.dev/emmanuel-portfolio-agent/portfolio-agent/agent:latest ./backend
+          docker push us-central1-docker.pkg.dev/emmanuel-portfolio-agent/portfolio-agent/agent:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy portfolio-agent \
+            --image=us-central1-docker.pkg.dev/emmanuel-portfolio-agent/portfolio-agent/agent:latest \
+            --region=us-central1 \
+            --project=emmanuel-portfolio-agent \
+            --service-account=sa-cloud-run@emmanuel-portfolio-agent.iam.gserviceaccount.com \
+            --set-env-vars="PROJECT_ID=emmanuel-portfolio-agent,DATA_STORE_ID=portfolio-docs-v2,SEARCH_ENGINE_ID=portfolio-search-v2,BIGQUERY_DATASET=portfolio_agent,BIGQUERY_TABLE=conversations,REGION=us-central1" \
+            --allow-unauthenticated \
+            --memory=512Mi \
+            --cpu=1
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    if: contains(toJson(github.event.commits), 'frontend/')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CICD_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy frontend to GCS
+        run: |
+          gcloud storage cp frontend/index.html gs://emmanuel-portfolio-agent-frontend/index.html --cache-control="no-cache, no-store"
+          gcloud storage cp frontend/style.css gs://emmanuel-portfolio-agent-frontend/style.css --cache-control="no-cache, no-store"
