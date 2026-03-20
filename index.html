@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Agent — Emmanuel Ledesma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">🤖</div>
+    <div class="header-text">
+      <h1>Emmanuel <span>Ledesma</span></h1>
+      <p>Cloud Engineer · Buenos Aires, Argentina</p>
+      <span class="badge">AI Portfolio Agent · Gemini + Vertex AI Search</span>
+    </div>
+    <div class="header-links">
+      <a href="https://github.com/EmmaLedesma" target="_blank" class="link-github">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/></svg>
+        GitHub
+      </a>
+      <a href="https://www.linkedin.com/in/emmanuel-ledesmam" target="_blank" class="link-linkedin">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+        LinkedIn
+      </a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="suggestions" id="suggestions">
+    <button class="suggestion" onclick="sendSuggestion(this)">What projects use Terraform?</button>
+    <button class="suggestion" onclick="sendSuggestion(this)">Docker and CI/CD experience?</button>
+    <button class="suggestion" onclick="sendSuggestion(this)">Tell me about his AI projects</button>
+    <button class="suggestion" onclick="sendSuggestion(this)">Most complex project?</button>
+    <button class="suggestion" onclick="sendSuggestion(this)">Proyectos en AWS</button>
+    <button class="suggestion" onclick="sendSuggestion(this)">Experiencia en IBM</button>
+  </div>
+
+  <div class="chat-container">
+    <div class="messages" id="messages">
+      <div class="message agent">
+        <div class="avatar agent">EL</div>
+        <div class="bubble">
+          Hi! I'm an AI assistant representing Emmanuel's professional portfolio.<br><br>
+          Ask me anything about his projects, skills, or experience — in <strong>English or Spanish</strong>.
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <textarea id="user-input" placeholder="Ask about Emmanuel's skills, projects or experience..." rows="1"></textarea>
+      <button id="send-btn" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
+      </button>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-name">Emmanuel Ledesma</div>
+  <div>
+    Cloud Engineer · Portfolio Project ·
+    <a href="https://github.com/EmmaLedesma" target="_blank">GitHub</a> ·
+    <a href="https://www.linkedin.com/in/emmanuel-ledesmam" target="_blank">LinkedIn</a>
+  </div>
+  <div class="footer-stack">
+    <span class="stack-badge">GCP Cloud Run</span>
+    <span class="stack-badge">Vertex AI Search</span>
+    <span class="stack-badge">Gemini 2.5 Flash</span>
+    <span class="stack-badge">Terraform</span>
+    <span class="stack-badge">Python 3.12</span>
+    <span class="stack-badge">GitHub Actions</span>
+  </div>
+</footer>
+
+<script>
+  const API_URL = "https://portfolio-agent-402841142920.us-central1.run.app/chat";
+  let sessionId = null;
+  let isLoading = false;
+
+  const messagesEl = document.getElementById("messages");
+  const inputEl    = document.getElementById("user-input");
+  const sendBtn    = document.getElementById("send-btn");
+  const suggestionsEl = document.getElementById("suggestions");
+
+  inputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  inputEl.addEventListener("input", () => {
+    inputEl.style.height = "auto";
+    inputEl.style.height = inputEl.scrollHeight + "px";
+  });
+
+  function sendSuggestion(btn) {
+    inputEl.value = btn.textContent;
+    suggestionsEl.style.display = "none";
+    sendMessage();
+  }
+
+  function addMessage(text, role) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.innerHTML = `
+      <div class="avatar ${role}">${role === "agent" ? "EL" : "U"}</div>
+      <div class="bubble">${formatText(text)}</div>
+    `;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addTyping() {
+    const div = document.createElement("div");
+    div.className = "message agent";
+    div.id = "typing";
+    div.innerHTML = `
+      <div class="avatar agent">EL</div>
+      <div class="typing"><span></span><span></span><span></span></div>
+    `;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function removeTyping() {
+    const t = document.getElementById("typing");
+    if (t) t.remove();
+  }
+
+  function formatText(text) {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/\n/g, "<br>");
+  }
+
+  async function sendMessage() {
+    const message = inputEl.value.trim();
+    if (!message || isLoading) return;
+
+    isLoading = true;
+    sendBtn.disabled = true;
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+
+    addMessage(message, "user");
+    addTyping();
+
+    try {
+      const payload = { message };
+      if (sessionId) payload.session_id = sessionId;
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      removeTyping();
+      if (res.ok) {
+        sessionId = data.session_id;
+        addMessage(data.response, "agent");
+      } else {
+        addMessage("Sorry, there was an error. Please try again.", "agent");
+      }
+    } catch (e) {
+      removeTyping();
+      addMessage("Connection error. Please try again.", "agent");
+    }
+
+    isLoading = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+</script>
+</body>
+</html>
