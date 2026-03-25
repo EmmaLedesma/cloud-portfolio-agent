@@ -1,70 +1,76 @@
-import json
-import base64
-import logging
-import functions_framework
-from google.cloud import storage
-from google.cloud import discoveryengine_v1 as discoveryengine
+variable "project_id" {}
+variable "region" {}
+variable "docs_bucket_name" {}
+variable "pubsub_topic_id" {}
+variable "ingestion_service_account" {}
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# ── Bucket para el código fuente de la Cloud Function ───────────
+resource "google_storage_bucket" "function_source" {
+  name                        = "${var.project_id}-function-source"
+  location                    = var.region
+  force_destroy               = true
+  uniform_bucket_level_access = true
+}
 
-PROJECT_ID    = "emmanuel-portfolio-agent"
-DATA_STORE_ID = "portfolio-docs-v2"
-LOCATION      = "global"
+# ── ZIP del código fuente ────────────────────────────────────────
+data "archive_file" "ingest_function" {
+  type        = "zip"
+  source_dir  = "${path.root}/../functions/ingest"
+  output_path = "${path.root}/../functions/ingest.zip"
+}
 
-@functions_framework.cloud_event
-def ingest_document(cloud_event):
-    """
-    Se dispara via Pub/Sub cuando se sube un documento nuevo
-    al bucket emmanuel-portfolio-agent-docs.
+resource "google_storage_bucket_object" "ingest_function_source" {
+  name   = "ingest-${data.archive_file.ingest_function.output_md5}.zip"
+  bucket = google_storage_bucket.function_source.name
+  source = data.archive_file.ingest_function.output_path
+}
 
-    El mensaje de Pub/Sub contiene:
-    - bucket: nombre del bucket
-    - name: path del archivo subido
-    """
-    try:
-        pubsub_message = cloud_event.data.get("message", {})
-        data = pubsub_message.get("data", "")
-        if data:
-            message_data = json.loads(base64.b64decode(data).decode("utf-8"))
-        else:
-            message_data = {}
+# ── Cloud Function v2 ───────────────────────────────────────────
+resource "google_cloudfunctions2_function" "ingest" {
+  name     = "ingest-documents"
+  location = var.region
+  project  = var.project_id
 
-        bucket_name = message_data.get("bucket", "emmanuel-portfolio-agent-docs")
-        file_name   = message_data.get("name", "portfolio.jsonl")
+  description = "Re-indexa documentos en Vertex AI Search via Pub/Sub"
 
-        logger.info(f"Procesando documento: gs://{bucket_name}/{file_name}")
+  build_config {
+    runtime     = "python312"
+    entry_point = "ingest_document"
 
-        # Solo procesar archivos .jsonl y .txt
-        if not (file_name.endswith(".jsonl") or file_name.endswith(".txt")):
-            logger.info(f"Archivo ignorado (no es .jsonl ni .txt): {file_name}")
-            return
+    source {
+      storage_source {
+        bucket = google_storage_bucket.function_source.name
+        object = google_storage_bucket_object.ingest_function_source.name
+      }
+    }
+  }
 
-        # Reimportar documentos en Vertex AI Search
-        client = discoveryengine.DocumentServiceClient()
+  service_config {
+    max_instance_count    = 3
+    min_instance_count    = 0
+    available_memory      = "256M"
+    timeout_seconds       = 120
+    service_account_email = var.ingestion_service_account
 
-        parent = (
-            f"projects/{PROJECT_ID}/locations/{LOCATION}"
-            f"/collections/default_collection"
-            f"/dataStores/{DATA_STORE_ID}"
-            f"/branches/default_branch"
-        )
+    environment_variables = {
+      PROJECT_ID    = var.project_id
+      DATA_STORE_ID = "portfolio-docs-v2"
+    }
+  }
 
-        gcs_uri = f"gs://{bucket_name}/{file_name}"
+  event_trigger {
+    trigger_region = var.region
+    event_type     = "google.cloud.pubsub.topic.v1.messagePublished"
+    pubsub_topic   = var.pubsub_topic_id
+    retry_policy   = "RETRY_POLICY_RETRY"
+  }
+}
 
-        request = discoveryengine.ImportDocumentsRequest(
-            parent=parent,
-            gcs_source=discoveryengine.GcsSource(
-                input_uris=[gcs_uri],
-                data_schema="document",
-            ),
-            reconciliation_mode=discoveryengine.ImportDocumentsRequest.ReconciliationMode.INCREMENTAL,
-        )
+# ── Outputs ─────────────────────────────────────────────────────
+output "function_name" {
+  value = google_cloudfunctions2_function.ingest.name
+}
 
-        operation = client.import_documents(request=request)
-        logger.info(f"Operacion de importacion iniciada: {operation.operation.name}")
-        logger.info(f"Documento indexado exitosamente: {gcs_uri}")
-
-    except Exception as e:
-        logger.error(f"Error al indexar documento: {e}")
-        raise
+output "function_uri" {
+  value = google_cloudfunctions2_function.ingest.service_config[0].uri
+}

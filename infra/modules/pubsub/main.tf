@@ -29,7 +29,3 @@ output "topic_name" {
 output "topic_id" {
   value = google_pubsub_topic.new_document.id
 }
-
-output "topic_id" {
-  value = google_pubsub_topic.new_document.id
-}
