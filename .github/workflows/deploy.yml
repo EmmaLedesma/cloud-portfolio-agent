@@ -14,7 +14,7 @@ permissions:
 jobs:
   deploy-backend:
     runs-on: ubuntu-latest
-    if: contains(github.event.commits[0].modified, 'backend/')
+    if: github.ref == 'refs/heads/master' && contains(github.event.commits[0].modified, 'backend/')
     steps:
       - uses: actions/checkout@v4
 
@@ -49,7 +49,7 @@ jobs:
 
   deploy-frontend:
     runs-on: ubuntu-latest
-    if: contains(toJson(github.event.commits), 'frontend/')
+    if: github.ref == 'refs/heads/master' && contains(toJson(github.event.commits), 'frontend/')
     steps:
       - uses: actions/checkout@v4
 
